@@ -7,6 +7,31 @@ Resources:
       InstanceType: t2.micro
       ImageId: ami-00a205cb8e06c3c4e
       IamInstanceProfile: !Ref MyEc2InstanceProfile
+      UserData: !Base64
+        Fn::Sub: |
+          #!/bin/bash -xe
+          yum install -y aws-cfn-bootstrap
+
+          # Install the files and packages from the metadata
+          /opt/aws/bin/cfn-init -v \
+            --stack ${AWS::StackName} \
+            --resource MyEc2 \
+            --configsets install \
+            --region ${AWS::Region}
+    Metadata:
+      AWS::CloudFormation::Init:
+        configSets:
+          install: [ installHttpd ]
+        installHttpd:
+          packages:
+            yum:
+              httpd: []
+          services:
+            sysvinit:
+              httpd:
+                enabled: true
+                ensureRunning: true
+
 
   MyEc2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
@@ -29,6 +54,4 @@ Resources:
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
-
-
 
