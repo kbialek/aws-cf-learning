@@ -38,6 +38,9 @@ Resources:
               httpd:
                 enabled: true
                 ensureRunning: true
+          commands:
+            init-html:
+              command: echo "<h2>Hello from $(hostname)</h2>" > /var/www/html/index.html
 
 
   MyEc2InstanceProfile:
