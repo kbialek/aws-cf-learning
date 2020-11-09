@@ -1,5 +1,10 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
+Parameters:
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-b9d42ed3
+
 Resources:
   MyEc2:
     Type: AWS::EC2::Instance
@@ -7,6 +12,8 @@ Resources:
       InstanceType: t2.micro
       ImageId: ami-00a205cb8e06c3c4e
       IamInstanceProfile: !Ref MyEc2InstanceProfile
+      SecurityGroupIds:
+        - !Ref MyEc2HttpSecurityGroup
       UserData: !Base64
         Fn::Sub: |
           #!/bin/bash -xe
@@ -55,3 +62,13 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 
+  MyEc2HttpSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allows HTTP access
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
