@@ -25,6 +25,9 @@ Resources:
             --resource MyEc2 \
             --configsets install \
             --region ${AWS::Region}
+
+          systemctl enable cfn-hup
+          systemctl start cfn-hup
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -32,7 +35,7 @@ Resources:
         installHttpd:
           packages:
             yum:
-              httpd: []
+              httpd: [ ]
           services:
             sysvinit:
               httpd:
@@ -40,8 +43,28 @@ Resources:
                 ensureRunning: true
           commands:
             init-html:
-              command: echo "<h2>Hello from $(hostname)</h2>" > /var/www/html/index.html
-
+              command: echo "<h2>Hello from $(hostname) with cfn-hup!!!</h2>" > /var/www/html/index.html
+          files:
+            /etc/cfn/cfn-hup.conf:
+              content: !Sub |
+                [main]
+                stack=${AWS::StackName}
+                region=${AWS::Region}
+                interval=1
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content: !Sub |
+                [cfn-auto-reloader-hook]
+                triggers=post.update
+                path=Resources.MyEc2.Metadata.AWS::CloudFormation::Init
+                action=/opt/aws/bin/cfn-init -v \
+                  --stack ${AWS::StackName} \
+                  --resource MyEc2 \
+                  --configsets install \
+                  --region ${AWS::Region}
+                runas=root
+              mode: "000400"
+              owner: "root"
+              group: "root"
 
   MyEc2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
