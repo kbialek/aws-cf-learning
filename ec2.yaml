@@ -28,6 +28,12 @@ Resources:
 
           systemctl enable cfn-hup
           systemctl start cfn-hup
+
+          # Signal the status from cfn-init
+          /opt/aws/bin/cfn-signal -e $? \
+            --stack ${AWS::StackName} \
+            --resource MyEc2 \
+            --region ${AWS::Region}
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -65,6 +71,10 @@ Resources:
               mode: "000400"
               owner: "root"
               group: "root"
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT5M
+
 
   MyEc2InstanceProfile:
     Type: AWS::IAM::InstanceProfile
