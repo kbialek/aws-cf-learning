@@ -6,14 +6,14 @@ Parameters:
     Default: vpc-b9d42ed3
 
 Resources:
-  MyEc2:
+  ApplicationInstance:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.micro
       ImageId: ami-00a205cb8e06c3c4e
-      IamInstanceProfile: !Ref MyEc2InstanceProfile
+      IamInstanceProfile: !Ref ApplicationInstanceInstanceProfile
       SecurityGroupIds:
-        - !Ref MyEc2HttpSecurityGroup
+        - !Ref ApplicationInstanceHttpSecurityGroup
       UserData: !Base64
         Fn::Sub: |
           #!/bin/bash -xe
@@ -22,7 +22,7 @@ Resources:
           # Install the files and packages from the metadata
           /opt/aws/bin/cfn-init -v \
             --stack ${AWS::StackName} \
-            --resource MyEc2 \
+            --resource ApplicationInstance \
             --configsets install \
             --region ${AWS::Region}
 
@@ -32,7 +32,7 @@ Resources:
           # Signal the status from cfn-init
           /opt/aws/bin/cfn-signal -e $? \
             --stack ${AWS::StackName} \
-            --resource MyEc2 \
+            --resource ApplicationInstance \
             --region ${AWS::Region}
     Metadata:
       AWS::CloudFormation::Init:
@@ -61,10 +61,10 @@ Resources:
               content: !Sub |
                 [cfn-auto-reloader-hook]
                 triggers=post.update
-                path=Resources.MyEc2.Metadata.AWS::CloudFormation::Init
+                path=Resources.ApplicationInstance.Metadata.AWS::CloudFormation::Init
                 action=/opt/aws/bin/cfn-init -v \
                   --stack ${AWS::StackName} \
-                  --resource MyEc2 \
+                  --resource ApplicationInstance \
                   --configsets install \
                   --region ${AWS::Region}
                 runas=root
@@ -76,13 +76,13 @@ Resources:
         Timeout: PT5M
 
 
-  MyEc2InstanceProfile:
+  ApplicationInstanceInstanceProfile:
     Type: AWS::IAM::InstanceProfile
     Properties:
       Roles:
-        - !Ref MyEc2Role
+        - !Ref ApplicationInstanceRole
 
-  MyEc2Role:
+  ApplicationInstanceRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -98,7 +98,7 @@ Resources:
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
 
-  MyEc2HttpSecurityGroup:
+  ApplicationInstanceHttpSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allows HTTP access
@@ -108,3 +108,4 @@ Resources:
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
+
