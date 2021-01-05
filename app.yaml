@@ -3,7 +3,7 @@ AWSTemplateFormatVersion: "2010-09-09"
 Parameters:
   VpcId:
     Type: AWS::EC2::VPC::Id
-    Default: vpc-b9d42ed3
+    Default: vpc-a907bcc3
 
   ApplicationArtifact:
     Type: String
