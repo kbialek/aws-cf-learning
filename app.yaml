@@ -13,6 +13,11 @@ Parameters:
     Type: String
     Default: ""
 
+  EnvId:
+    Description: Uniquily identifies the application environment
+    Type: String
+
+
 Resources:
 
   DeploymentBucket:
@@ -31,13 +36,22 @@ Resources:
   Vpc:
     Type: AWS::EC2::VPC
     Properties:
-      CidrBlock: 10.0.0.0/16
+      CidrBlock: 10.0.0.0/24
       EnableDnsSupport: true
       EnableDnsHostnames: true
       Tags:
         - Key: env
-          Value: my-app
+          Value: !Ref EnvId
 
+  SubnetPublicA:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.0.0/27
+      AvailabilityZone: !Sub ${AWS::Region}a
+      Tags:
+        - Key: env
+          Value: !Ref EnvId
 
   ApplicationInstance:
     Type: AWS::EC2::Instance

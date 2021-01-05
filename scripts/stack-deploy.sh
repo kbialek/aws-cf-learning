@@ -8,4 +8,5 @@ aws cloudformation deploy \
   --capabilities CAPABILITY_IAM \
   --parameter-override \
   ApplicationArtifact="$APP_ARTIFACT" \
-  CurrentTimestamp="$(date -uIs)"
+  CurrentTimestamp="$(date -uIs)" \
+  EnvId=my-app-dev
