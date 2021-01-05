@@ -1,10 +1,6 @@
 AWSTemplateFormatVersion: "2010-09-09"
 
 Parameters:
-  VpcId:
-    Type: AWS::EC2::VPC::Id
-    Default: vpc-a907bcc3
-
   ApplicationArtifact:
     Type: String
     Default: ""
@@ -43,19 +39,55 @@ Resources:
         - Key: env
           Value: !Ref EnvId
 
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: env
+          Value: !Ref EnvId
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+
+  SubnetPublicARouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: env
+          Value: !Ref EnvId
+
+  SubnetPublicAInternetGatewayRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref SubnetPublicARouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
   SubnetPublicA:
     Type: AWS::EC2::Subnet
     Properties:
       VpcId: !Ref Vpc
       CidrBlock: 10.0.0.0/27
       AvailabilityZone: !Sub ${AWS::Region}a
+      MapPublicIpOnLaunch: true
       Tags:
         - Key: env
           Value: !Ref EnvId
 
+  SubnetPublicARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SubnetPublicA
+      RouteTableId: !Ref SubnetPublicARouteTable
+
   ApplicationInstance:
     Type: AWS::EC2::Instance
     Properties:
+      SubnetId: !Ref SubnetPublicA
       InstanceType: t2.micro
       ImageId: ami-00a205cb8e06c3c4e
       IamInstanceProfile: !Ref ApplicationInstanceInstanceProfile
@@ -182,7 +214,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allows HTTP access
-      VpcId: !Ref VpcId
+      VpcId: !Ref Vpc
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
