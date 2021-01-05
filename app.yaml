@@ -5,7 +5,30 @@ Parameters:
     Type: AWS::EC2::VPC::Id
     Default: vpc-b9d42ed3
 
+  ApplicationArtifact:
+    Type: String
+    Default: ""
+
+  CurrentTimestamp:
+    Type: String
+    Default: ""
+
 Resources:
+
+  DeploymentBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: TRUE
+        BlockPublicPolicy: TRUE
+        IgnorePublicAcls: TRUE
+        RestrictPublicBuckets: TRUE
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+
+
   ApplicationInstance:
     Type: AWS::EC2::Instance
     Properties:
@@ -38,6 +61,7 @@ Resources:
       AWS::CloudFormation::Init:
         configSets:
           install: [ installHttpd ]
+          deploy: [ deploy ]
         installHttpd:
           packages:
             yum:
@@ -65,10 +89,31 @@ Resources:
                 action=/opt/aws/bin/cfn-init -v \
                   --stack ${AWS::StackName} \
                   --resource ApplicationInstance \
-                  --configsets install \
+                  --configsets deploy \
                   --region ${AWS::Region}
                 runas=root
               mode: "000400"
+              owner: "root"
+              group: "root"
+        deploy:
+          commands:
+            deploy:
+              command: /opt/deploy.sh
+          files:
+            /opt/deploy.sh:
+              content: !Sub
+                - |
+                  #!/usr/bin/env bash
+                  echo "${CurrentTimestamp}"
+                  aws s3 cp s3://${DeploymentBucket}/${ApplicationArtifact} /tmp
+                  if [ "$?" -ne "0" ]; then
+                    exit
+                  fi
+                  rm -rf /var/www/html/*
+                  unzip /tmp/${ApplicationArtifact} -d /var/www/html/
+                - DeploymentBucket: !Ref DeploymentBucket
+                  CurrentTimestamp: !Ref CurrentTimestamp
+              mode: "000500"
               owner: "root"
               group: "root"
     CreationPolicy:
@@ -97,6 +142,17 @@ Resources:
       Path: /
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Policies:
+        - PolicyName: DeploymentBucketReadAccess
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "s3:GetObject"
+                Resource:
+                  - !Sub arn:aws:s3:::${DeploymentBucket}/*
+
 
   ApplicationInstanceHttpSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -109,3 +165,6 @@ Resources:
           ToPort: 80
           CidrIp: 0.0.0.0/0
 
+Outputs:
+  DeploymentBucketName:
+    Value: !Ref DeploymentBucket
