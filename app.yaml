@@ -52,7 +52,8 @@ Resources:
       VpcId: !Ref Vpc
       InternetGatewayId: !Ref InternetGateway
 
-  SubnetPublicARouteTable:
+  # Route table for public subnets
+  SubnetPublicRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
       VpcId: !Ref Vpc
@@ -60,13 +61,14 @@ Resources:
         - Key: env
           Value: !Ref EnvId
 
-  SubnetPublicAInternetGatewayRoute:
+  SubnetPublicInternetGatewayRoute:
     Type: AWS::EC2::Route
     Properties:
-      RouteTableId: !Ref SubnetPublicARouteTable
+      RouteTableId: !Ref SubnetPublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
 
+  # Public Subnet A
   SubnetPublicA:
     Type: AWS::EC2::Subnet
     Properties:
@@ -82,7 +84,28 @@ Resources:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
       SubnetId: !Ref SubnetPublicA
-      RouteTableId: !Ref SubnetPublicARouteTable
+      RouteTableId: !Ref SubnetPublicRouteTable
+
+  # Public Subnet B
+  SubnetPublicB:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref Vpc
+      CidrBlock: 10.0.0.32/27
+      AvailabilityZone: !Sub ${AWS::Region}b
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: env
+          Value: !Ref EnvId
+
+  SubnetPublicBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref SubnetPublicB
+      RouteTableId: !Ref SubnetPublicRouteTable
+
+
+  # EC2 Instances
 
   ApplicationInstance:
     Type: AWS::EC2::Instance
